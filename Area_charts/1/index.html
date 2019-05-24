@@ -24,10 +24,15 @@
         stroke-width: 6px;
     }
 
+    /* .formata{
+      margin-left:200px;  
+    } */
+
 </style>
 <body>
 
     <nav class="navbar navbar-default"></nav>
+    <div id='tooltip' style='position:absolute;background-color:lightgray;padding:5px'></div>
     <svg width="600" height="400"></svg>
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -44,8 +49,6 @@
     // var parseTime = d3.timeParse("%d-%b-%y");
     var parseTime = d3.timeParse("%b %y");
 
-    // tooltip
-    const tooltip = d3.select('#tooltip');
     
 
 
@@ -60,6 +63,19 @@
         .y0(y(0))
         .y1(function(d) { return y(d.Ultimo); });
 
+    // define the line
+    var valueline = d3.line()
+        .x(function(d) { return x(d.Date); })
+        .y(function(d) { return y(d.Ultimo); });
+    
+    // tooltip
+    const tooltip = d3.select('#tooltip');
+    const line2 = d3.line().x(d => x(d.Date)).y(d => y(d.Ultimo));
+
+    const tooltipLine = g.append('line2');
+
+    let states, tipBox;
+
     d3.tsv("data/USD_BRLDadosHistóricos.tsv", function(d) {
         d.Date = parseTime(d.Date);
         // alert(d.Date);
@@ -70,15 +86,14 @@
     }, function(error, data) {
         if (error) throw error;
 
+        states = data;
+
         x.domain(d3.extent(data, function(d) { return d.Date; }));
         y.domain([0, d3.max(data, function(d) { return d.Ultimo; })]);
 
-          // define the line
-          var valueline = d3.line()
-            .x(function(d) { return x(d.Date); })
-            .y(function(d) { return y(d.Ultimo); });
+          
 
-              // Add the valueline path.
+        // Add the valueline path.
         g.append("path")
             .data([data])
             .attr("class", "line")
@@ -106,60 +121,63 @@
 
 
 
-       
+        tipBox = g.append('rect')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('opacity', 0)
+            .on('mousemove', drawTooltip)
+            .on('mouseout', removeTooltip);
+
 
 
 
 
 // tooltip
 
-//         const tooltipLine = g.append('line');
+        function removeTooltip() {
+            if (tooltip) tooltip.style('display', 'none');
+            if (tooltipLine) tooltipLine.attr('stroke', 'none');
+        }
 
-//        tipBox = g.append('rect')
-//             .data([data])
-//             .attr('width', width)
-//             .attr('height', height)
-//             .attr('opacity', 0)
-//             .on('mousemove', drawTooltip)
-//             .on('mouseout', removeTooltip);
+        
 
+        function drawTooltip() {
 
-//         function removeTooltip() {
-//             if (tooltip) tooltip.style('display', 'none');
-//             if (tooltipLine) tooltipLine.attr('stroke', 'none');
-//         }
+        var coordinates= d3.mouse(this);
+        
+        var xAxis = coordinates[0];
+        var yAxis = coordinates[1];
+        
 
-//         function drawTooltip() {
-//             const year = Math.floor((x.invert(d3.mouse(tipBox.node())[0]) + 5) / 10) * 10;
-  
-//         // d.sort(() => {
-//         //     return d.Ultimo;
-//         // })  
+        const tempo = x.invert(d3.mouse(tipBox.node())[0]);
+
+        // alert(x(tempo));    
+        // alert(preco);    
+        
+        data.sort((d) => {
+            return d.Ultimo;
+        })  
     
-//         tooltipLine.attr('stroke', 'black')
-//             .data([data])
-//             .attr('x1', x(d.Ultimo))
-//             .attr('y2', height);
-  
-//   tooltip.html(year)
-//     .style('display', 'block')
-//     .style('left', d3.event.pageX + 20)
-//     .style('top', d3.event.pageY - 20)
-//     .selectAll()
-//     .data(d).enter()
-//     .append('div')
-//     .html(d => d.Date + ': ' + d.Ultimo);
-// }
+        // tooltipLine.attr('stroke', 'black')
+        //     .attr('x1', ((x(tempo) + 5) / 10) * 10)
+        //     .attr('x2', ((x(tempo) + 5) / 10) * 10)
+        //     .attr('y1', 0)
+        //     .attr('y2', height);
+            // .style("margin-left","200" + "px");
+            
+            
+        tooltip.html(d3.timeFormat("%B %d, %Y")(tempo))
+            .style('display', 'block')
+            .style('left', d3.event.pageX + 20 + "px")
+            .style('top', d3.event.pageY - 20 + "px")
+            .selectAll()
+            .data(data).enter()
+            .append('div')
+            .style('color', 'red')
+            // .html(d => 'Price: ' + y(preco));
 
-
-
-
-
-
-
-
-
-
+       
+        }
 
 
     });
